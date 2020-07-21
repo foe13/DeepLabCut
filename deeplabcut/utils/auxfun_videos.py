@@ -8,6 +8,8 @@ Please see AUTHORS for contributors.
 https://github.com/AlexEMG/DeepLabCut/blob/master/AUTHORS
 Licensed under GNU Lesser General Public License v3.0
 """
+import datetime
+import numpy as np
 import os
 import subprocess
 from pathlib import Path
@@ -79,7 +81,7 @@ def ShortenVideo(
         vidpath, str(Path(vname).stem) + str(outsuffix) + str(Path(vname).suffix)
     )
     print("Slicing and saving to name", newfilename)
-    command = f"ffmpeg -i {vname} -ss {start} -to {stop} -c:v copy {newfilename}"
+    command = f"ffmpeg -fflags +genpts -i {vname} -ss {start} -to {stop} -c:v copy {newfilename}"
     subprocess.call(command, shell=True)
     return str(newfilename)
 
@@ -226,6 +228,38 @@ def DownSampleVideo(
         command = f"ffmpeg -i {vname} -filter:v scale={width}:{height} -c:a copy {newfilename}"
     subprocess.call(command, shell=True)
     return str(newfilename)
+
+
+def split_video(vname, n_splits):
+    """
+    Split a large video file into several shorter ones of equal duration.
+
+    Parameters
+    ----------
+    vname : string
+        Full path of the video
+    n_splits : int
+        Number of shorter videos to produce
+
+    Returns
+    -------
+    list
+        Paths of the video splits
+    """
+    cap = cv2.VideoCapture(vname)
+    nframes = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    duration = nframes / fps
+    chunk_dur = duration / n_splits
+    splits = np.arange(n_splits + 1) * chunk_dur
+    time_formatter = lambda val: str(datetime.timedelta(seconds=val))
+    clips = []
+    for n, (start, end) in enumerate(zip(splits, splits[1:])):
+        clips.append(ShortenVideo(vname,
+                                  time_formatter(start),
+                                  time_formatter(end),
+                                  f'short{n}'))
+    return clips
 
 
 def draw_bbox(video):
