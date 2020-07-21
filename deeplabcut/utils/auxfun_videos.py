@@ -155,9 +155,11 @@ def CropVideo(
     newfilename = os.path.join(
         vidpath, str(Path(vname).stem) + str(outsuffix) + str(Path(vname).suffix)
     )
-
+    cap = cv2.VideoCapture(vname)
+    fps = cap.get(cv2.CAP_PROP_FPS)
     print("Cropping and saving to name", newfilename)
-    command = f"ffmpeg -i {vname} -filter:v crop={width}:{height}:{origin_x}:{origin_y} -c:a copy {newfilename}"
+    # Chain both crop and fps filters
+    command = f"ffmpeg -i {vname} -vf crop={width}:{height}:{origin_x}:{origin_y},fps={fps} {newfilename}"
     subprocess.call(command, shell=True)
     return str(newfilename)
 
